@@ -1,0 +1,116 @@
+import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk
+
+class ContadorGarrafasApp:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Contador de Garrafas de Água")
+
+        # Carregar a imagem de fundo e redimensioná-la
+        self.background_image = Image.open("Beba mais água.png")
+        self.background_photo = ImageTk.PhotoImage(self.background_image)
+
+        # Adicionar a imagem de fundo como um rótulo
+        self.label_background = tk.Label(master, image=self.background_photo)
+        self.label_background.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # Outros componentes da interface
+        self.ml_por_garrafa = 500  # ml por garrafa
+        self.total_garrafas = 0
+        self.meta_diaria = 8
+
+        self.label_info = tk.Label(master, text="Digite seu peso (em kg):", bg="white", font=("HandyCasualCondensed-Oblique", 32))
+        self.label_info.config(fg="lightblue")  # Mudança na cor das letras para azul
+        self.label_info.pack()
+
+        self.input_peso = tk.Entry(master, width=30, font=("Glacial Indifference", 14))
+        self.input_peso.pack()
+
+        self.botao_calcular = tk.Button(master, text="Calcular", command=self.atualizar_garrafas, font=("Glacial Indifference", 14))
+        self.botao_calcular.pack()
+
+        self.frame_garrafas = tk.Frame(master)
+        self.frame_garrafas.pack()
+
+        self.garrafas_exibidas = 0
+        self.garrafas_clicadas = 0
+
+        # Inicializar listas para armazenar referências às imagens
+        self.imagens_garrafas_cheias = []
+        self.imagens_garrafas_vazias = []
+
+    def calcular_garrafas_necessarias(self, peso):
+        ml_necessarios = peso * 35  # ml de água necessários por kg de peso
+        return ml_necessarios / self.ml_por_garrafa
+
+    def exibir_garrafas(self, quantidade):
+        self.frame_garrafas.destroy()
+        self.frame_garrafas = tk.Frame(self.master)
+        self.frame_garrafas.pack()
+
+        # Carregar as imagens das garrafas cheias e vazias
+        garrafa_cheia = Image.open("garrafa_cheia-Photo.png").resize((100, 200))
+        garrafa_vazia = Image.open("garrafa_vazia-Photo.png").resize((100, 200))
+
+        # Manter referências às imagens para evitar que sejam coletadas pelo coletor de lixo
+        self.imagens_garrafas_cheias.clear()
+        self.imagens_garrafas_vazias.clear()
+
+        for _ in range(int(quantidade)):
+            imagem_cheia = ImageTk.PhotoImage(garrafa_cheia)
+            imagem_vazia = ImageTk.PhotoImage(garrafa_vazia)
+            self.imagens_garrafas_cheias.append(imagem_cheia)
+            self.imagens_garrafas_vazias.append(imagem_vazia)
+
+        for i in range(int(quantidade)):
+            imagem_tk = self.imagens_garrafas_cheias[i] if i < self.meta_diaria else self.imagens_garrafas_vazias[i]
+            label_garrafa = tk.Label(self.frame_garrafas, image=imagem_tk)
+            label_garrafa.pack(side=tk.LEFT)
+            if i < self.meta_diaria:
+                label_garrafa.bind("<Button-1>", lambda event, index=i: self.beber_garrafa(event, index))
+                self.garrafas_exibidas += 1
+
+            # Adicionando o texto "500ml" abaixo de cada garrafa
+            label_ml = tk.Label(self.frame_garrafas, text="500ml", font=("Glacial Indifference", 12))
+            label_ml.pack(side=tk.LEFT)
+
+    def mostrar_instrucao_temporaria(self):
+        instrucao_label = tk.Label(self.master, text="Clique nas garrafas para esvaziá-las", bg="white", font=("Glacial Indifference", 14))
+        instrucao_label.pack()
+        # Função para fazer a instrução piscar
+        def piscar(contagem=0):
+            if contagem < 3:  # Piscar 3 vezes
+                if contagem % 2 == 0:
+                    instrucao_label.config(fg="black")
+                else:
+                    instrucao_label.config(fg="white")
+                self.master.after(1000, piscar, contagem + 1)  # Tempo entre as mudanças de cor
+            else:
+                instrucao_label.destroy()  # Remover o texto após a terceira piscada
+        piscar()
+
+    def beber_garrafa(self, event, index):
+        event.widget.configure(image=self.imagens_garrafas_vazias[index])
+        self.garrafas_clicadas += 1
+        if self.garrafas_clicadas == self.garrafas_exibidas:
+            messagebox.showinfo("Parabéns!", "Você atingiu a sua meta do dia.")
+
+    def atualizar_garrafas(self):
+        try:
+            self.garrafas_exibidas = 0
+            self.garrafas_clicadas = 0
+            peso = float(self.input_peso.get())
+            self.total_garrafas = self.calcular_garrafas_necessarias(peso)
+            self.exibir_garrafas(self.total_garrafas)
+            self.mostrar_instrucao_temporaria()  # Mostrar instrução após calcular as garrafas
+        except ValueError:
+            messagebox.showerror("Erro", "Por favor, insira um valor válido para o peso.")
+
+def main():
+    root = tk.Tk()
+    app = ContadorGarrafasApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()

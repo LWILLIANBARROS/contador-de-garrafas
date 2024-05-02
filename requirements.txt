@@ -1,0 +1,2 @@
+echo tkinter>>requirements.txt
+echo Pillow>>requirements.txt
